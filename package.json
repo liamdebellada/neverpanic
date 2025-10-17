@@ -1,0 +1,19 @@
+{
+  "name": "neverpanic",
+  "module": "index.ts",
+  "version": "0.0.2",
+  "type": "module",
+  "scripts": {
+    "build": "tsc index.ts --outdir dist"
+  },
+  "files": ["dist"],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "5"
+  }
+}

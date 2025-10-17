@@ -4,7 +4,7 @@
   "version": "0.0.2",
   "type": "module",
   "scripts": {
-    "build": "tsc index.ts --outdir dist",
+    "build": "tsc",
     "test": "bun test"
   },
   "files": ["dist"],

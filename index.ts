@@ -58,7 +58,7 @@ function safeFn<T, A extends unknown[], E = never, EH = null>(
  * if (!user.success) {
  * 	console.error(user.error)
  * } else {
- * 	console.log(user)
+ * 	console.log(user.data)
  * }
  */
 async function fromUnsafe<T, E = null>(

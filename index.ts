@@ -73,23 +73,15 @@ function safeFn<
  * 	console.log(user.data)
  * }
  */
-function fromUnsafe<T extends Promise<unknown>, E = null>(
-  cb: () => T,
-  eh?: (err: unknown) => E
-): Promise<Result<Awaited<T>, E>>;
-function fromUnsafe<T, E = null>(
-  cb: () => T,
-  eh?: (err: unknown) => E
-): Result<T, E>;
-function fromUnsafe<T, E = null>(
-  cb: () => T,
-  eh?: (err: unknown) => E
-): Result<T, E> | Promise<Result<T, E>> {
-  const createErrorResult = (e: unknown) =>
-    ({
-      success: false,
-      error: eh?.(e) ?? null,
-    } as Result<T, E>);
+function fromUnsafe<
+  T,
+  E = null,
+  R = T extends Promise<unknown> ? Promise<Result<Awaited<T>, E>> : Result<T, E>
+>(cb: () => T, eh?: (err: unknown) => E): R {
+  const createErrorResult = (e: unknown) => ({
+    success: false,
+    error: eh?.(e) ?? null,
+  });
 
   const createSuccessResult = (data: T) =>
     ({
@@ -101,11 +93,11 @@ function fromUnsafe<T, E = null>(
     const result = cb();
 
     if (result instanceof Promise)
-      return result.then(createSuccessResult).catch(createErrorResult);
+      return result.then(createSuccessResult).catch(createErrorResult) as R;
 
-    return createSuccessResult(result);
+    return createSuccessResult(result) as R;
   } catch (e) {
-    return createErrorResult(e);
+    return createErrorResult(e) as R;
   }
 }
 

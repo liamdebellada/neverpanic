@@ -1,4 +1,4 @@
-export type Result<T, E = unknown> =
+export type Result<T = unknown, E = unknown> =
   | {
       success: true;
       data: T;
@@ -30,18 +30,30 @@ export type Result<T, E = unknown> =
  *   console.log(getUserResult.data);
  * }
  */
-function safeFn<T, A extends unknown[], E = never, EH = null>(
-  cb: (...args: A) => Promise<Result<T, E>>,
-  eh?: (err: unknown) => EH
-): (...args: A) => Promise<Result<T, E | EH>> {
-  return async (...args: A) => {
+function safeFn<
+  T extends Result | Promise<Result>,
+  A extends unknown[],
+  E = null
+>(
+  cb: (...args: A) => T,
+  eh?: (e: unknown) => E
+): (...args: A) => T | Result<never, E> {
+  const createErrorResult = (e: unknown) =>
+    ({
+      success: false,
+      error: eh?.(e) ?? null,
+    } as const);
+
+  return (...args) => {
     try {
-      return await cb(...args);
+      const result = cb(...args);
+
+      if (result instanceof Promise)
+        return result.catch(createErrorResult) as T;
+
+      return result;
     } catch (e) {
-      return {
-        success: false,
-        error: eh?.(e) ?? null,
-      } as Result<T, E | EH>;
+      return createErrorResult(e) as T;
     }
   };
 }
@@ -61,22 +73,39 @@ function safeFn<T, A extends unknown[], E = never, EH = null>(
  * 	console.log(user)
  * }
  */
-async function fromUnsafe<T, E = null>(
+function fromUnsafe<T extends Promise<unknown>, E = null>(
   cb: () => T,
   eh?: (err: unknown) => E
-): Promise<Result<Awaited<T>, E>> {
-  try {
-    const result = await cb();
-
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (e) {
-    return {
+): Promise<Result<Awaited<T>, E>>;
+function fromUnsafe<T, E = null>(
+  cb: () => T,
+  eh?: (err: unknown) => E
+): Result<T, E>;
+function fromUnsafe<T, E = null>(
+  cb: () => T,
+  eh?: (err: unknown) => E
+): Result<T, E> | Promise<Result<T, E>> {
+  const createErrorResult = (e: unknown) =>
+    ({
       success: false,
       error: eh?.(e) ?? null,
-    } as Result<Awaited<T>, E>;
+    } as Result<T, E>);
+
+  const createSuccessResult = (data: T) =>
+    ({
+      success: true,
+      data,
+    } as const);
+
+  try {
+    const result = cb();
+
+    if (result instanceof Promise)
+      return result.then(createSuccessResult).catch(createErrorResult);
+
+    return createSuccessResult(result);
+  } catch (e) {
+    return createErrorResult(e);
   }
 }
 
